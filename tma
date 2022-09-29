@@ -1,0 +1,121 @@
+#!/bin/bash
+
+## Joe Nyilas, crafted this
+## Sun Microsystems | Oracle
+## Prototyped and conceived 24-Jun-2013
+
+# $Id: tma,v 0.3 2021/02/05 16:54:32 jnyilas Exp $
+
+##
+##  TMux Attach
+##  Select and attach to any existing tmux session with a minimum of fuss
+##
+
+# With no arguments:
+  # If only one active session exists, it will attach to it.
+  # If multiple active sessions exist, an interactive selecion menu will be presented.
+
+# With optional session name argument:
+  # If presented with session name, simply attach to it.
+
+# With optional create option:
+  # If presented with create option, create a new session with (optional) desired name,
+  # otherwise, a random session name will be assigned.
+
+usage()
+{
+	printf "usage: %s [-c] [tmux-session-name]\n" "$(basename "$0")" >&2
+	printf "  attach: %s [tmux-session-name]\n" "$(basename "$0")" >&2
+	printf "  create: %s -c [tmux-session-name]\n" "$(basename "$0")" >&2
+	exit 1
+}
+
+#
+# Setup
+#
+session_names=("Alpha" "Beta" "Gamma" "Delta" "Epsilon" "Zeta" "Eta" "Theta" "Iota" "Kappa" "Lamda" "Mu" "Nu" "Xi" "Omicron" "Pi" "Rho" "Sigma" "Tau" "Upsilon" "Phi" "Chi" "Psi" "Omega")
+#Randomize the session name
+rand=$((RANDOM / 1424))
+session=${session_names[$rand]}
+
+#
+# Process Argv
+#
+if [[ $# -eq 1 && "$1" != "-c" ]]; then
+	if [[ "$1" =~ ^- ]]; then
+		#unsupported option
+		usage
+	fi
+	printf "Attaching to session %s\n" "$1"
+	exec tmux attach-session -t "$1"
+
+elif [[ $# -eq 1 && "$1" == "-c" ]]; then
+	printf "Creating new session %s\n" "$session"
+	sleep 0.5
+	exec tmux new-session -s "$session"
+
+elif [[ $# -eq 2 && "$1" == "-c"  ]]; then
+	printf "Creating new session %s\n" "$2"
+	sleep 0.5
+	exec tmux new-session -s "$2"
+
+elif [[ $# -gt 1 ]]; then
+	usage
+fi
+
+
+#
+# Evaluate running tmux sessions
+#
+
+#Load ID array with the tmux session list
+#field split on new line
+declare -a ID
+IFS="
+" ID=( $(tmux list-sessions 2> /dev/null) )
+
+#decide what to do based on the number of elements in the array
+case ${#ID[@]} in
+	0)	#the array is empty
+		printf "No tmux sessions found. Creating one...\n"
+		sleep 0.5
+		exec tmux new-session -s "$session"
+		;;
+		
+	1)	#only one; so just attach to it
+		printf "Attaching to session %s\n" "${ID[0]}"
+		exec tmux attach-session
+		;;
+
+	*)	#more than one; present a session-ID list menu
+		digitRegex='[[:digit:]]'
+		while  true ; do
+			#iterate through the array keys to build a menu
+			for i in "${!ID[@]}"; do
+				printf "%d) %s\n" "${i}" "${ID[${i}]}"
+			done
+
+			printf "Select a session ID [0] :: "
+			read j
+
+			#conditionals to validate input
+			if [[ ${j:=0} =~ $digitRegex ]]; then
+				#input is a number or <CR> (defaulting to 0)
+				if [[ -n "${ID[${j}]}" ]]; then
+					#input was an element in the array
+					#so, done
+					break
+				fi
+			fi
+		#invalid input, so go 'round again
+		done
+
+		printf "Attaching to session %s\n" "${ID[${j}]}"
+		#session name may be an actual name and not always an integer.
+		#strip name string -- everything following the first 
+		#':' is deleted using parameter expansion
+		session=${ID[${j}]%%:*}
+		exec tmux attach-session -t "${session}"
+		;;
+esac
+exit 0
