@@ -1,0 +1,2 @@
+# tma
+tmux Attach
