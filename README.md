@@ -1,6 +1,4 @@
-<head> 
 <meta name="google-site-verification" content="EIWLetfhVUYXfJPu9UPWU-QSTRBETKwvsbIyU2BC8vU" />
-</head>
 
 # tma
 ## tmux Attach
