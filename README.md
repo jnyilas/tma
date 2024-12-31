@@ -19,3 +19,5 @@ Select and attach to any existing tmux session with a minimum of fuss.
     tma [-c] [tmux-session-name]
     Attach to a session: tma [tmux-session-name]
     Create a new session: tma -c [tmux-session-name]
+
+## [Releases](https://github.com/jnyilas/tma/releases)
